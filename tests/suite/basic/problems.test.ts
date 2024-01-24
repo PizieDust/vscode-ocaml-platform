@@ -50,20 +50,18 @@ const problemMessages = {
 
 suite("basic", () => {
   test("problem matcher", async () => {
-    const locationRegex = new RegExp(
-      '^\\s*\\bFile\\b\\s*"(.*)",\\s*\\blines?\\b\\s*(\\d+)(?:-(\\d+))?(?:,\\s*\\bcharacters\\b\\s*(\\d+)-(\\d+)\\s*)?:\\s*$',
-    );
+    const locationRegex =
+      /^\s*\bFile\b\s*"(.*)",\s*\blines?\b\s*(\d+)(?:-(\d+))?(?:,\s*\bcharacters\b\s*(\d+)-(\d+)\s*)?:\s*$/;
 
-    const messageRegex = new RegExp(
-      "^(?:\\s*\\bParse\\b\\s*)?\\s*\\b([Ee]rror|Warning)\\b\\s*(?:(?:\\(\\s*\\bwarning\\b\\s*)?(\\d+)\\)?)?\\s*:\\s*(.*)$",
-    );
+    const messageRegex =
+      /^(?:\s*\bParse\b\s*)?\s*\b([Ee]rror|Warning)\b\s*(?:(?:\(\s*\bwarning\b\s*)?(\d+)\)?)?\s*:\s*(.*)$/;
 
     for (const [problem, expected] of Object.entries(problemLocations)) {
       const captures = problem.match(locationRegex);
       assert.notStrictEqual(
         captures,
         null,
-        "Location regex should match: " + problem,
+        `Location regex should match: ${problem}`,
       );
       assert.deepStrictEqual(captures?.slice(1), expected);
     }
@@ -73,7 +71,7 @@ suite("basic", () => {
       assert.notStrictEqual(
         captures,
         null,
-        "Message regex should match: " + problem,
+        `Message regex should match: ${problem}`,
       );
       assert.deepStrictEqual(captures?.slice(1), expected);
     }

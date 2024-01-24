@@ -2,9 +2,24 @@
 
 # Unreleased
 
+## 1.16.1
+
+- No longer color comments starting three stars or more as ocamldoc comments (#1355)
+
+## 1.16.0
+
+- Add syntax documentation option (#1313)
+
+- Update syntax for ocamlformat (#1343)
+
+- Add snippet for dune alias stanza (#1347)
+
+## 1.15.0
+
 - Fix direnv compatibility by loading the process.env on every command (#1322)
 
 - Fix server settings missing on LSP startup (#1321)
+
 - Fix broken syntax highlighting for a wildcard in the env stanza (#1334)
 
 - Add config to disabling dune diagnostics (#1320)
