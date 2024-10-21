@@ -534,6 +534,143 @@ module Copy_type_under_cursor = struct
     command Extension_consts.Commands.copy_type_under_cursor handler
 end
 
+module Search_by_type = struct
+  let extension_name = "Search By Type"
+
+  let ocaml_lsp_doesnt_support_search_by_type instance ocaml_lsp =
+    match
+      Ocaml_lsp.is_version_up_to_date
+        ocaml_lsp
+        (Extension_instance.ocaml_version_exn instance)
+    with
+    | Ok () -> ()
+    | Error (`Msg msg) ->
+      show_message
+        `Warn
+        "The installed version of `ocamllsp` does not support type search. %s"
+        msg
+
+  let rec remove_duplicates = function
+    | (a : Custom_requests.Type_search.type_search_result) :: (b :: _ as t) ->
+      if String.equal a.name b.name && a.cost = b.cost then remove_duplicates t
+      else a :: remove_duplicates t
+    | unique -> unique
+
+  let get_search_results ~query ~limit ~with_doc ~position text_editor client =
+    let open Promise.Syntax in
+    let doc = TextEditor.document text_editor in
+    let uri = TextDocument.uri doc in
+    let* res =
+      Custom_requests.(
+        send_request
+          client
+          Type_search.request
+          (Type_search.make ~uri ~position ~limit ~query ~with_doc ()))
+    in
+    match res with
+    | [] ->
+      show_message `Info "Empty results";
+      [] |> Promise.return
+    | res -> remove_duplicates res |> Promise.return
+
+  let display_search_results results =
+    Vscode.(
+      Window.showQuickPickItems
+        ~choices:
+          (List.map
+             results
+             ~f:(fun (res : Custom_requests.Type_search.type_search_result) ->
+               ( Vscode.QuickPickItem.create
+                   ~label:res.name
+                   ~description:res.typ
+                   ~detail:(Option.value ~default:"" res.doc)
+                   ()
+               , res.name )))
+        ~options:
+          (QuickPickOptions.create
+             ~title:"Type/Polarity Search Results"
+             ~canPickMany:false
+             ~ignoreFocusOut:true
+             ())
+        ())
+
+  let _search_by_type =
+    let handler (instance : Extension_instance.t) ~args:_ =
+      let search_by_type () =
+        match Window.activeTextEditor () with
+        | None ->
+          Extension_consts.Command_errors.text_editor_must_be_active
+            extension_name
+            ~expl:"The command to search for a value by it's type"
+          |> show_message `Error "%s" |> Promise.return
+        | Some text_editor -> (
+          match Extension_instance.lsp_client instance with
+          | None ->
+            show_message `Warn "ocamllsp is not running" |> Promise.return
+          | Some (_client, ocaml_lsp)
+            when not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp) ->
+            ocaml_lsp_doesnt_support_search_by_type instance ocaml_lsp
+            |> Promise.return
+          | Some (client, _) -> (
+            let open Promise.Syntax in
+            let position =
+              TextEditor.selection text_editor |> Selection.active
+            in
+            let* query_input =
+              Vscode.(
+                Window.showInputBox
+                  ~options:
+                    (InputBoxOptions.create
+                       ~title:"Search By Type"
+                       ~prompt:
+                         "Perform a search by type request by providing a type \
+                          signature to look for"
+                       ~placeHolder:"int -> string"
+                       ~value:"int -> string"
+                       ~password:false
+                       ~ignoreFocusOut:true
+                       ())
+                  ())
+            in
+            match query_input with
+            | Some query -> (
+              let* type_search_results =
+                get_search_results
+                  ~query
+                  ~with_doc:true
+                  ~limit:100
+                  ~position
+                  text_editor
+                  client
+              in
+              let* type_picker = display_search_results type_search_results in
+              match type_picker with
+              | Some text ->
+                let+ type_inserted =
+                  TextEditor.edit
+                    text_editor
+                    ~callback:(fun ~editBuilder ->
+                      TextEditorEdit.insert
+                        editBuilder
+                        ~location:position
+                        ~value:text)
+                    ()
+                in
+                if not type_inserted then
+                  show_message `Error "Unable to insert %s" text
+                else show_message `Info "Inserted %s" text
+              | None -> show_message `Info "No selection made" |> Promise.return
+              )
+            | _ ->
+              show_message `Error "Invalid input for type search"
+              |> Promise.return))
+      in
+      let (_ : unit Promise.t) = search_by_type () in
+      ()
+    in
+    command Extension_consts.Commands.search_by_type handler
+end
+
 let register extension instance = function
   | Command { id; handler } ->
     let callback = handler instance in
