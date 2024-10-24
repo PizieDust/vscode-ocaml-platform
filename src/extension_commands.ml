@@ -546,20 +546,49 @@ module Search_by_type = struct
       else a :: remove_duplicates ~cmp t
     | remaining -> remaining
 
-  let get_query_input ?(previous_query = "") () =
-    Window.showInputBox
-      ~options:
-        (InputBoxOptions.create
-           ~title:"Search By Type"
-           ~prompt:
-             "Perform a search by type request by providing a type signature \
-              to look for"
-           ~placeHolder:"int -> string / -int +string"
-           ~value:previous_query
-           ~password:false
-           ~ignoreFocusOut:true
-           ())
-      ()
+  let get_query_input ?previous_query () =
+    Promise.make @@ fun ~resolve ~reject:_ ->
+    let input_box =
+      let validationMessage =
+        Option.map previous_query ~f:(fun _ ->
+            InputBoxValidationMessage.create
+              ~message:
+                "No result found. Check the syntax or use a more general query."
+              ~severity:Warning
+              ())
+      in
+      InputBox.set
+        (Window.createInputBox ())
+        ~title:"Search By Type"
+        ~ignoreFocusOut:false
+        ?value:previous_query
+        ~placeholder:"int -> string / -int +string"
+        ?validationMessage
+        ~prompt:
+          "Perform a search by type request by providing a type signature to \
+           look for"
+        ()
+    in
+    let _disposable =
+      InputBox.onDidAccept
+        input_box
+        ~listener:(fun () ->
+          let query = InputBox.value input_box in
+          InputBox.set_busy input_box true;
+          InputBox.set_enabled input_box false;
+          resolve query)
+        ()
+    in
+    let _disposable =
+      InputBox.onDidChangeValue
+        input_box
+        ~listener:(fun _ -> InputBox.set_validationMessage input_box None)
+        ()
+    in
+    let _disposable =
+      InputBox.onDidHide input_box ~listener:(fun _ -> resolve None) ()
+    in
+    InputBox.show input_box
 
   let get_search_results ~query ~limit ~with_doc ~position text_editor client =
     let doc = TextEditor.document text_editor in
@@ -593,7 +622,7 @@ module Search_by_type = struct
   let _search_by_type =
     let open Promise.Syntax in
     let handler (instance : Extension_instance.t) ~args:_ =
-      let rec search_by_type ?(query = "") () =
+      let rec search_by_type ?query () =
         match Window.activeTextEditor () with
         | None ->
           Extension_consts.Command_errors.text_editor_must_be_active
@@ -616,7 +645,7 @@ module Search_by_type = struct
             let position =
               TextEditor.selection text_editor |> Selection.active
             in
-            let* query_input = get_query_input ~previous_query:query () in
+            let* query_input = get_query_input ?previous_query:query () in
             match query_input with
             | Some query -> (
               let* type_search_results =
