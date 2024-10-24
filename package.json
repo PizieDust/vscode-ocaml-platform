@@ -1187,10 +1187,6 @@
         {
           "id": "ocaml-help",
           "name": "Help and feedback"
-        },
-        {
-          "id": "ocaml-custom-requests",
-          "name": "LSP Custom Requests"
         }
       ]
     },
@@ -1207,10 +1203,6 @@
       {
         "view": "ocaml-sandbox",
         "contents": "In order to manage your sandbox, you can open a folder containing an Opam switch, or select an Opam switch as a sandbox.\n[Open Folder](command:vscode.openFolder)\n[Select Sandbox](command:ocaml.select-sandbox)"
-      },
-      {
-        "view": "ocaml-custom-requests",
-        "contents": "Type/Polarity Search \nSearch for value by type or polarity.\n[Search by Type or Polarity](command:ocaml.search-by-type)"
       }
     ]
   },
