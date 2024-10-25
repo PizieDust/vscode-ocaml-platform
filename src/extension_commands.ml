@@ -540,13 +540,35 @@ module Search_by_type = struct
   let ocaml_lsp_doesnt_support_search_by_type ocaml_lsp =
     not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp)
 
-  let rec remove_duplicates ~cmp = function
+  let rec _remove_duplicates ~cmp = function
     | a :: (b :: _ as t) ->
-      if cmp a b then remove_duplicates ~cmp t
-      else a :: remove_duplicates ~cmp t
+      if cmp a b then _remove_duplicates ~cmp t
+      else a :: _remove_duplicates ~cmp t
     | remaining -> remaining
 
-  let get_query_input ?previous_query () =
+  let rec handle_search ?query client text_editor =
+    let open Promise.Syntax in
+    let position = TextEditor.selection text_editor |> Selection.active in
+    let* query_input = get_query_input ~previous_query:query () in
+    match query_input with
+    | Some query -> (
+      let* type_search_results =
+        get_search_results
+          ~query
+          ~with_doc:true
+          ~limit:100
+          ~position
+          text_editor
+          client
+      in
+      match type_search_results with
+      | [] -> handle_search client text_editor
+      | results ->
+        display_search_results ~query results text_editor position client
+        |> Promise.return)
+    | _ -> Promise.return ()
+
+  and get_query_input ?previous_query () =
     Promise.make @@ fun ~resolve ~reject:_ ->
     let input_box =
       let validationMessage =
@@ -561,7 +583,7 @@ module Search_by_type = struct
         (Window.createInputBox ())
         ~title:"Search By Type"
         ~ignoreFocusOut:false
-        ?value:previous_query
+        ?value:(Option.join previous_query)
         ~placeholder:"int -> string / -int +string"
         ?validationMessage
         ~prompt:
@@ -590,7 +612,7 @@ module Search_by_type = struct
     in
     InputBox.show input_box
 
-  let get_search_results ~query ~limit ~with_doc ~position text_editor client =
+  and get_search_results ~query ~limit ~with_doc ~position text_editor client =
     let doc = TextEditor.document text_editor in
     let uri = TextDocument.uri doc in
     Custom_requests.(
@@ -599,30 +621,67 @@ module Search_by_type = struct
         Type_search.request
         (Type_search.make ~uri ~position ~limit ~query ~with_doc ()))
 
-  let display_search_results results =
-    Window.showQuickPickItems
-      ~choices:
-        (List.map
-           results
-           ~f:(fun (res : Custom_requests.Type_search.type_search_result) ->
-             ( QuickPickItem.create
-                 ~label:res.name
-                 ~description:res.typ
-                 ~detail:(Option.value ~default:"" res.doc)
-                 ()
-             , res.name )))
-      ~options:
-        (QuickPickOptions.create
-           ~title:"Type/Polarity Search Results"
-           ~canPickMany:false
-           ~ignoreFocusOut:true
-           ())
-      ()
+  and display_search_results ~query results text_editor position client =
+    let quickPickItems =
+      List.map
+        results
+        ~f:(fun (res : Custom_requests.Type_search.type_search_result) ->
+          QuickPickItem.create
+            ~label:res.name
+            ~description:res.typ
+            ~detail:(Option.value ~default:"" res.doc)
+            ())
+    in
+
+    let module QuickPick = Vscode.QuickPick.Make (QuickPickItem) in
+    let quickPick =
+      QuickPick.set
+        (Window.createQuickPick (module QuickPickItem) ())
+        ~title:"Type/Polarity Search Results"
+        ~activeItems:[]
+        ~busy:false
+        ~enabled:true
+        ~placeholder:"Select an item to insert it to the editor"
+        ~selectedItems:[]
+        ~ignoreFocusOut:true
+        ~items:quickPickItems
+        ~buttons:[ Window.quickInputButtonBack ]
+        ()
+    in
+    let _disposable =
+      QuickPick.onDidTriggerButton
+        quickPick
+        ~listener:(fun _button ->
+          let _ = handle_search ?query:(Some query) client text_editor in
+          ())
+        ()
+    in
+    let _disposable =
+      QuickPick.onDidChangeSelection
+        quickPick
+        ~listener:(fun selections ->
+          match selections with
+          | [] -> ()
+          | item :: _ ->
+            let value = QuickPickItem.label item in
+            let _ =
+              Vscode.TextEditor.edit
+                text_editor
+                ~callback:(fun ~editBuilder ->
+                  Vscode.TextEditorEdit.insert
+                    editBuilder
+                    ~location:position
+                    ~value)
+                ()
+            in
+            QuickPick.hide quickPick)
+        ()
+    in
+    QuickPick.show quickPick
 
   let _search_by_type =
-    let open Promise.Syntax in
     let handler (instance : Extension_instance.t) ~args:_ =
-      let rec search_by_type ?query () =
+      let search_by_type () =
         match Window.activeTextEditor () with
         | None ->
           Extension_consts.Command_errors.text_editor_must_be_active
@@ -641,55 +700,7 @@ module Search_by_type = struct
               `Warn
               "The installed version of `ocamllsp` does not support type search"
             |> Promise.return
-          | Some (client, _) -> (
-            let position =
-              TextEditor.selection text_editor |> Selection.active
-            in
-            let* query_input = get_query_input ?previous_query:query () in
-            match query_input with
-            | Some query -> (
-              let* type_search_results =
-                get_search_results
-                  ~query
-                  ~with_doc:true
-                  ~limit:100
-                  ~position
-                  text_editor
-                  client
-              in
-              match type_search_results with
-              | [] ->
-                show_message `Info "Empty type/polarity search results";
-                search_by_type ~query ()
-              | results -> (
-                let* type_picker =
-                  display_search_results
-                    (remove_duplicates
-                       ~cmp:(fun
-                           (left :
-                             Custom_requests.Type_search.type_search_result)
-                           right
-                         ->
-                         String.equal left.name right.name
-                         && left.cost = right.cost)
-                       results)
-                in
-                match type_picker with
-                | Some text ->
-                  let+ type_inserted =
-                    TextEditor.edit
-                      text_editor
-                      ~callback:(fun ~editBuilder ->
-                        TextEditorEdit.insert
-                          editBuilder
-                          ~location:position
-                          ~value:text)
-                      ()
-                  in
-                  if not type_inserted then
-                    show_message `Error "Unable to insert %s" text
-                | None -> Promise.return ()))
-            | _ -> Promise.return ()))
+          | Some (client, _) -> handle_search client text_editor)
       in
       let (_ : unit Promise.t) = search_by_type () in
       ()
