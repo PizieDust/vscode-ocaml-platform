@@ -593,7 +593,7 @@ module Search_by_type = struct
         Type_search.request
         (Type_search.make ~uri ~position ~limit ~query ~with_doc ()))
 
-  let rec display_search_results query results text_editor position =
+  let rec display_search_results query results text_editor position client =
     let quickPickItems =
       List.map
         results
@@ -623,7 +623,7 @@ module Search_by_type = struct
       QuickPick.onDidTriggerButton
         quickPick
         ~listener:(fun _ ->
-          let _ = get_query_input ~previous_query:query () in
+          let _ = handle_search ~previous_query:query text_editor client in
           ())
         ()
     in
@@ -645,18 +645,19 @@ module Search_by_type = struct
                 ()
             in
             QuickPick.hide quickPick
-          | _ -> display_search_results query results text_editor position)
+          | _ ->
+            display_search_results query results text_editor position client)
         ()
     in
     QuickPick.show quickPick
 
-  let rec handle_search ?previous_query text_editor client =
+  and handle_search ?previous_query text_editor client =
     let open Promise.Syntax in
     let position = TextEditor.selection text_editor |> Selection.active in
     let* query_input = get_query_input ?previous_query () in
     match query_input with
     | Some query -> (
-      let* type_search_results =
+      let* query_results =
         get_search_results
           ~query
           ~with_doc:true
@@ -665,7 +666,7 @@ module Search_by_type = struct
           text_editor
           client
       in
-      match type_search_results with
+      match query_results with
       | [] -> handle_search ~previous_query:query text_editor client
       | results ->
         let _ =
@@ -680,6 +681,7 @@ module Search_by_type = struct
                results)
             text_editor
             position
+            client
         in
         Promise.return ())
     | _ -> Promise.return ()
