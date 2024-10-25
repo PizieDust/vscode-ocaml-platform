@@ -1,7 +1,7 @@
 let select_sandbox_item =
   let icon =
     `LightDark
-      Vscode.TreeItem.LightDarkIcon.
+      Vscode.LightDarkIcon.
         { light = `String (Path.asset "collection-light.svg" |> Path.to_string)
         ; dark = `String (Path.asset "collection-dark.svg" |> Path.to_string)
         }
@@ -23,7 +23,7 @@ let select_sandbox_item =
 let terminal_item =
   let icon =
     `LightDark
-      Vscode.TreeItem.LightDarkIcon.
+      Vscode.LightDarkIcon.
         { light = `String (Path.asset "terminal-light.svg" |> Path.to_string)
         ; dark = `String (Path.asset "terminal-dark.svg" |> Path.to_string)
         }
@@ -46,7 +46,7 @@ let terminal_item =
 let perform_type_search =
   let icon =
     `LightDark
-      Vscode.TreeItem.LightDarkIcon.
+      Vscode.LightDarkIcon.
         { light =
             `String (Path.asset "document-search-light.svg" |> Path.to_string)
         ; dark =
