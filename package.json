@@ -758,6 +758,11 @@
         "command": "ocaml.switch-hover-mode",
         "key": "Alt+H",
         "when": "editorTextFocus && editorLangId == ocaml || editorLangId == ocaml.interface "
+      },
+      {
+        "command": "ocaml.search-by-type",
+        "key": "Alt+F",
+        "when": "editorLangId == ocaml || editorLangId == ocaml.interface || editorLangId == reason || editorLangId == ocaml.ocamllex"
       }
     ],
     "languages": [
