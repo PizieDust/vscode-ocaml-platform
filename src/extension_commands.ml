@@ -540,35 +540,7 @@ module Search_by_type = struct
   let ocaml_lsp_doesnt_support_search_by_type ocaml_lsp =
     not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp)
 
-  let rec _remove_duplicates ~cmp = function
-    | a :: (b :: _ as t) ->
-      if cmp a b then _remove_duplicates ~cmp t
-      else a :: _remove_duplicates ~cmp t
-    | remaining -> remaining
-
-  let rec handle_search ?query client text_editor =
-    let open Promise.Syntax in
-    let position = TextEditor.selection text_editor |> Selection.active in
-    let* query_input = get_query_input ~previous_query:query () in
-    match query_input with
-    | Some query -> (
-      let* type_search_results =
-        get_search_results
-          ~query
-          ~with_doc:true
-          ~limit:100
-          ~position
-          text_editor
-          client
-      in
-      match type_search_results with
-      | [] -> handle_search client text_editor
-      | results ->
-        display_search_results ~query results text_editor position client
-        |> Promise.return)
-    | _ -> Promise.return ()
-
-  and get_query_input ?previous_query () =
+  let get_query_input ?previous_query () =
     Promise.make @@ fun ~resolve ~reject:_ ->
     let input_box =
       let validationMessage =
@@ -583,7 +555,7 @@ module Search_by_type = struct
         (Window.createInputBox ())
         ~title:"Search By Type"
         ~ignoreFocusOut:false
-        ?value:(Option.join previous_query)
+        ?value:previous_query
         ~placeholder:"int -> string / -int +string"
         ?validationMessage
         ~prompt:
@@ -612,7 +584,7 @@ module Search_by_type = struct
     in
     InputBox.show input_box
 
-  and get_search_results ~query ~limit ~with_doc ~position text_editor client =
+  let get_search_results ~query ~limit ~with_doc ~position text_editor client =
     let doc = TextEditor.document text_editor in
     let uri = TextDocument.uri doc in
     Custom_requests.(
@@ -621,7 +593,7 @@ module Search_by_type = struct
         Type_search.request
         (Type_search.make ~uri ~position ~limit ~query ~with_doc ()))
 
-  and display_search_results ~query results text_editor position client =
+  let rec display_search_results query results text_editor position =
     let quickPickItems =
       List.map
         results
@@ -632,7 +604,6 @@ module Search_by_type = struct
             ~detail:(Option.value ~default:"" res.doc)
             ())
     in
-
     let module QuickPick = Vscode.QuickPick.Make (QuickPickItem) in
     let quickPick =
       QuickPick.set
@@ -651,18 +622,17 @@ module Search_by_type = struct
     let _disposable =
       QuickPick.onDidTriggerButton
         quickPick
-        ~listener:(fun _button ->
-          let _ = handle_search ?query:(Some query) client text_editor in
+        ~listener:(fun _ ->
+          let _ = get_query_input ~previous_query:query () in
           ())
         ()
     in
     let _disposable =
-      QuickPick.onDidChangeSelection
+      QuickPick.onDidAccept
         quickPick
-        ~listener:(fun selections ->
-          match selections with
-          | [] -> ()
-          | item :: _ ->
+        ~listener:(fun () ->
+          match QuickPick.selectedItems quickPick with
+          | Some (item :: _) ->
             let value = QuickPickItem.label item in
             let _ =
               Vscode.TextEditor.edit
@@ -674,10 +644,45 @@ module Search_by_type = struct
                     ~value)
                 ()
             in
-            QuickPick.hide quickPick)
+            QuickPick.hide quickPick
+          | _ -> display_search_results query results text_editor position)
         ()
     in
     QuickPick.show quickPick
+
+  let rec handle_search ?previous_query text_editor client =
+    let open Promise.Syntax in
+    let position = TextEditor.selection text_editor |> Selection.active in
+    let* query_input = get_query_input ?previous_query () in
+    match query_input with
+    | Some query -> (
+      let* type_search_results =
+        get_search_results
+          ~query
+          ~with_doc:true
+          ~limit:100
+          ~position
+          text_editor
+          client
+      in
+      match type_search_results with
+      | [] -> handle_search ~previous_query:query text_editor client
+      | results ->
+        let _ =
+          display_search_results
+            query
+            (List.remove_consecutive_duplicates
+               ~which_to_keep:`First
+               ~equal:(fun
+                   (left : Custom_requests.Type_search.type_search_result)
+                   right
+                 -> String.equal left.name right.name && left.cost = right.cost)
+               results)
+            text_editor
+            position
+        in
+        Promise.return ())
+    | _ -> Promise.return ()
 
   let _search_by_type =
     let handler (instance : Extension_instance.t) ~args:_ =
@@ -700,8 +705,9 @@ module Search_by_type = struct
               `Warn
               "The installed version of `ocamllsp` does not support type search"
             |> Promise.return
-          | Some (client, _) -> handle_search client text_editor)
+          | Some (client, _) -> handle_search text_editor client)
       in
+
       let (_ : unit Promise.t) = search_by_type () in
       ()
     in
