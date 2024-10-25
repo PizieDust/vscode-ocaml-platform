@@ -3284,7 +3284,7 @@ module Window = struct
       -> ?token:CancellationToken.t
       -> unit
       -> string or_undefined Promise.t
-    [@@js.global "vscode.window.createQuickPick"]
+    [@@js.global "vscode.window.showQuickPick"]
 
     val quickInputButtonBack : QuickInputButton.t
     [@@js.global "vscode.QuickInputButtons.Back"]
