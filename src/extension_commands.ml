@@ -540,7 +540,7 @@ module Search_by_type = struct
   let ocaml_lsp_doesnt_support_search_by_type ocaml_lsp =
     not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp)
 
-  let get_query_input ?previous_query () =
+  let get_query_input ?previous_query ?(empty_result = false) () =
     Promise.make @@ fun ~resolve ~reject:_ ->
     let input_box =
       let validationMessage =
@@ -557,7 +557,7 @@ module Search_by_type = struct
         ~ignoreFocusOut:false
         ?value:previous_query
         ~placeholder:"int -> string / -int +string"
-        ?validationMessage
+        ?validationMessage:(if empty_result then validationMessage else None)
         ~prompt:
           "Perform a search by type request by providing a type signature to \
            look for"
@@ -651,10 +651,10 @@ module Search_by_type = struct
     in
     QuickPick.show quickPick
 
-  and handle_search ?previous_query text_editor client =
+  and handle_search ?previous_query ?empty_result text_editor client =
     let open Promise.Syntax in
     let position = TextEditor.selection text_editor |> Selection.active in
-    let* query_input = get_query_input ?previous_query () in
+    let* query_input = get_query_input ?previous_query ?empty_result () in
     match query_input with
     | Some query -> (
       let* query_results =
@@ -667,7 +667,12 @@ module Search_by_type = struct
           client
       in
       match query_results with
-      | [] -> handle_search ~previous_query:query text_editor client
+      | [] ->
+        handle_search
+          ~previous_query:query
+          ~empty_result:true
+          text_editor
+          client
       | results ->
         let _ =
           display_search_results
