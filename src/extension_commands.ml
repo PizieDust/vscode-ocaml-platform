@@ -699,8 +699,8 @@ module Search_by_type = struct
           Extension_consts.Command_errors.text_editor_must_be_active
             extension_name
             ~expl:
-              "Search by type/polarity can only be run with a valid file open \
-               in the editor."
+              "The cursor position is used to determine the correct \
+                environment and insert the result."
           |> show_message `Error "%s" |> Promise.return
         | Some text_editor -> (
           match Extension_instance.lsp_client instance with
