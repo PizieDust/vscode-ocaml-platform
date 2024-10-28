@@ -614,7 +614,7 @@ module Search_by_type = struct
         ~enabled:true
         ~placeholder:"Select an item to insert it to the editor"
         ~selectedItems:[]
-        ~ignoreFocusOut:true
+        ~ignoreFocusOut:false
         ~items:quickPickItems
         ~buttons:[ Window.quickInputButtonBack ]
         ()
