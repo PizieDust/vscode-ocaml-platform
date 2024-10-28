@@ -677,22 +677,22 @@ module Search_by_type = struct
   and handle_search ?empty_result text_editor client =
     let open Promise.Syntax in
     let position = TextEditor.selection text_editor |> Selection.active in
-    let* query_input = get_query_input ?empty_result () in
-    match query_input with
-    | Some query -> (
-      let* query_results =
-        get_search_results
-          ~query
-          ~with_doc:true
-          ~limit:100
-          ~position
-          text_editor
-          client
-      in
-      match query_results with
-      | [] -> handle_search ~empty_result:true text_editor client
-      | results ->
-        let _ =
+    let _ : unit Promise.t =
+      let* query_input = get_query_input ?empty_result () in
+      match query_input with
+      | Some query -> (
+        let+ query_results =
+          get_search_results
+            ~query
+            ~with_doc:true
+            ~limit:100
+            ~position
+            text_editor
+            client
+        in
+        match query_results with
+        | [] -> handle_search ~empty_result:true text_editor client
+        | results ->
           display_search_results
             query
             (List.remove_consecutive_duplicates
@@ -704,10 +704,10 @@ module Search_by_type = struct
                results)
             text_editor
             position
-            client
-        in
-        Promise.return ())
-    | None -> Promise.return ()
+            client)
+      | None -> Promise.return ()
+    in
+    ()
 
   let _search_by_type =
     let handler (instance : Extension_instance.t) ~args:_ =
@@ -719,21 +719,19 @@ module Search_by_type = struct
             ~expl:
               "The cursor position is used to determine the correct \
                environment and insert the result."
-          |> show_message `Error "%s" |> Promise.return
+          |> show_message `Error "%s"
         | Some text_editor -> (
           match Extension_instance.lsp_client instance with
-          | None ->
-            show_message `Warn "ocamllsp is not running" |> Promise.return
+          | None -> show_message `Warn "ocamllsp is not running"
           | Some (_client, ocaml_lsp)
             when ocaml_lsp_doesnt_support_search_by_type ocaml_lsp ->
             show_message
               `Warn
               "The installed version of `ocamllsp` does not support type search"
-            |> Promise.return
           | Some (client, _) -> handle_search text_editor client)
       in
 
-      let (_ : unit Promise.t) = search_by_type () in
+      let (_ : unit) = search_by_type () in
       ()
     in
     command Extension_consts.Commands.search_by_type handler
