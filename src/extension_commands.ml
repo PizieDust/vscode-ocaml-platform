@@ -540,49 +540,74 @@ module Search_by_type = struct
   let ocaml_lsp_doesnt_support_search_by_type ocaml_lsp =
     not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp)
 
-  let get_query_input ?previous_query ?(empty_result = false) () =
-    Promise.make @@ fun ~resolve ~reject:_ ->
-    let input_box =
-      let validationMessage =
-        Option.map previous_query ~f:(fun _ ->
-            InputBoxValidationMessage.create
-              ~message:
-                "No result found. Check the syntax or use a more general query."
-              ~severity:Warning
-              ())
-      in
+  let input_box =
+    (* Re-using the same instance of the input box allows us to remember the
+       last input. *)
+    let box =
       InputBox.set
         (Window.createInputBox ())
         ~title:"Search By Type"
         ~ignoreFocusOut:false
-        ?value:previous_query
         ~placeholder:"int -> string / -int +string"
-        ?validationMessage:(if empty_result then validationMessage else None)
         ~prompt:
           "Perform a search by type request by providing a type signature to \
            look for"
         ()
     in
     let _disposable =
-      InputBox.onDidAccept
-        input_box
-        ~listener:(fun () ->
-          let query = InputBox.value input_box in
-          InputBox.set_busy input_box true;
-          InputBox.set_enabled input_box false;
-          resolve query)
-        ()
-    in
-    let _disposable =
       InputBox.onDidChangeValue
-        input_box
-        ~listener:(fun _ -> InputBox.set_validationMessage input_box None)
+        box
+        ~listener:(fun _ -> InputBox.set_validationMessage box None)
         ()
     in
-    let _disposable =
-      InputBox.onDidHide input_box ~listener:(fun _ -> resolve None) ()
-    in
-    InputBox.show input_box
+    box
+
+  let get_query_input =
+    let previous : Disposable.t option ref = ref None in
+    fun ?(empty_result = false) () ->
+      let () =
+        match !previous with
+        | None -> ()
+        | Some disposable -> Disposable.dispose disposable
+      in
+      Promise.make @@ fun ~resolve ~reject:_ ->
+      let _update_input_box =
+        let validationMessage =
+          if empty_result then
+            Some
+              (InputBoxValidationMessage.create
+                 ~message:
+                   "No result found. Check the syntax or use a more general \
+                    query."
+                 ~severity:Warning
+                 ())
+          else None
+        in
+        InputBox.set_validationMessage input_box validationMessage;
+        InputBox.set_busy input_box false;
+        InputBox.set_enabled input_box true
+      in
+      let onDidAccept_disposable =
+        InputBox.onDidAccept
+          input_box
+          ~listener:(fun () ->
+            let query = InputBox.value input_box in
+            InputBox.set_busy input_box true;
+            InputBox.set_enabled input_box false;
+            resolve query)
+          ()
+      in
+      let onDidHide_disposable =
+        InputBox.onDidHide input_box ~listener:(fun _ -> resolve None) ()
+      in
+      let disposable =
+        Disposable.make ~dispose:(fun () ->
+            Disposable.dispose onDidAccept_disposable;
+            Disposable.dispose onDidHide_disposable;
+            resolve None)
+      in
+      previous := Some disposable;
+      InputBox.show input_box
 
   let get_search_results ~query ~limit ~with_doc ~position text_editor client =
     let doc = TextEditor.document text_editor in
@@ -622,7 +647,7 @@ module Search_by_type = struct
     let _disposable =
       QuickPick.onDidTriggerButton
         quickPick
-        ~listener:(fun _ -> handle_search ~previous_query:query text_editor client)
+        ~listener:(fun _ -> handle_search text_editor client)
         ()
     in
     let _disposable =
@@ -649,10 +674,10 @@ module Search_by_type = struct
     in
     QuickPick.show quickPick
 
-  and handle_search ?previous_query ?empty_result text_editor client =
+  and handle_search ?empty_result text_editor client =
     let open Promise.Syntax in
     let position = TextEditor.selection text_editor |> Selection.active in
-    let* query_input = get_query_input ?previous_query ?empty_result () in
+    let* query_input = get_query_input ?empty_result () in
     match query_input with
     | Some query -> (
       let* query_results =
@@ -665,12 +690,7 @@ module Search_by_type = struct
           client
       in
       match query_results with
-      | [] ->
-        handle_search
-          ~previous_query:query
-          ~empty_result:true
-          text_editor
-          client
+      | [] -> handle_search ~empty_result:true text_editor client
       | results ->
         let _ =
           display_search_results
@@ -687,7 +707,7 @@ module Search_by_type = struct
             client
         in
         Promise.return ())
-    | _ -> Promise.return ()
+    | None -> Promise.return ()
 
   let _search_by_type =
     let handler (instance : Extension_instance.t) ~args:_ =
@@ -698,7 +718,7 @@ module Search_by_type = struct
             extension_name
             ~expl:
               "The cursor position is used to determine the correct \
-                environment and insert the result."
+               environment and insert the result."
           |> show_message `Error "%s" |> Promise.return
         | Some text_editor -> (
           match Extension_instance.lsp_client instance with
