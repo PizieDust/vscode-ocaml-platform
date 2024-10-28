@@ -622,9 +622,7 @@ module Search_by_type = struct
     let _disposable =
       QuickPick.onDidTriggerButton
         quickPick
-        ~listener:(fun _ ->
-          let _ = handle_search ~previous_query:query text_editor client in
-          ())
+        ~listener:(fun _ -> handle_search ~previous_query:query text_editor client)
         ()
     in
     let _disposable =
