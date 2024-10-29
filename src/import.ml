@@ -74,7 +74,7 @@ let show_message kind fmt =
     match kind with
     | `Warn -> Window.showWarningMessage ~message ()
     | `Info -> Window.showInformationMessage ~message ()
-    | `Error -> Window.showInformationMessage ~message ()
+    | `Error -> Window.showErrorMessage ~message ()
   in
   Printf.ksprintf
     (fun x ->
