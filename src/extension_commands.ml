@@ -537,6 +537,10 @@ end
 module Search_by_type = struct
   let extension_name = "Search By Type"
 
+  let is_valid_file file_uri =
+    String.is_suffix file_uri ~suffix:".ml"
+    || String.is_suffix file_uri ~suffix:".mli"
+
   let ocaml_lsp_doesnt_support_search_by_type ocaml_lsp =
     not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp)
 
@@ -719,7 +723,18 @@ module Search_by_type = struct
             show_message
               `Warn
               "The installed version of `ocamllsp` does not support type search"
-          | Some (client, _) -> show_query_input text_editor client)
+          | Some (client, _) -> (
+            match
+              is_valid_file
+                (TextDocument.uri (TextEditor.document text_editor)
+                |> Uri.fsPath)
+            with
+            | true -> show_query_input text_editor client
+            | false ->
+              show_message
+                `Error
+                "Invalid file type. This command can only work in a valid \
+                 Ocaml .ml or .mli file"))
       in
 
       let (_ : unit) = search_by_type () in
