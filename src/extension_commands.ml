@@ -537,9 +537,10 @@ end
 module Search_by_type = struct
   let extension_name = "Search By Type"
 
-  let is_valid_file file_uri =
-    String.is_suffix file_uri ~suffix:".ml"
-    || String.is_suffix file_uri ~suffix:".mli"
+  let is_valid_text_doc textdoc =
+    match TextDocument.languageId textdoc with
+    | "ocaml" | "ocaml.interface" | "reason" | "ocaml.ocamllex" -> true
+    | _ -> false
 
   let ocaml_lsp_doesnt_support_search_by_type ocaml_lsp =
     not (Ocaml_lsp.can_handle_search_by_type ocaml_lsp)
@@ -555,7 +556,8 @@ module Search_by_type = struct
 
   let input_box =
     (* Re-using the same instance of the input box allows us to remember the
-       last input. *)
+       last input. show_message `Error "Invalid file type. This command can only
+       work in a valid \ Ocaml .ml or .mli file" *)
     let box =
       InputBox.set
         (Window.createInputBox ())
@@ -715,6 +717,12 @@ module Search_by_type = struct
               "The cursor position is used to determine the correct \
                environment and insert the result."
           |> show_message `Error "%s"
+        | Some text_editor
+          when not (is_valid_text_doc (TextEditor.document text_editor)) ->
+          show_message
+            `Error
+            "Invalid file type. This command only works in ocaml files, ocaml \
+             interface files, reason files or ocamllex files."
         | Some text_editor -> (
           match Extension_instance.lsp_client instance with
           | None -> show_message `Warn "ocamllsp is not running"
@@ -723,18 +731,7 @@ module Search_by_type = struct
             show_message
               `Warn
               "The installed version of `ocamllsp` does not support type search"
-          | Some (client, _) -> (
-            match
-              is_valid_file
-                (TextDocument.uri (TextEditor.document text_editor)
-                |> Uri.fsPath)
-            with
-            | true -> show_query_input text_editor client
-            | false ->
-              show_message
-                `Error
-                "Invalid file type. This command can only work in a valid \
-                 Ocaml .ml or .mli file"))
+          | Some (client, _) -> show_query_input text_editor client)
       in
 
       let (_ : unit) = search_by_type () in
