@@ -71,6 +71,8 @@ module Commands = struct
 
   let construct = ocaml_prefixed "construct"
 
+  let merlin_jump = ocaml_prefixed "jump"
+
   let navigate_typed_holes = ocaml_prefixed "navigate-typed-holes"
 end
 
