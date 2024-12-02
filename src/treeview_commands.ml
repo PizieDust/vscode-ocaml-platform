@@ -59,7 +59,27 @@ let construct_item =
   Vscode.TreeItem.set_command item command;
   item
 
-let items = [ select_sandbox_item; terminal_item; construct_item ]
+let navigate_holes_item =
+  let icon = `ThemeIcon (Vscode.ThemeIcon.make ~id:"arrow-up" ()) in
+  let label =
+    `TreeItemLabel
+      (Vscode.TreeItemLabel.create
+         ~label:"Navigate to different typed holes"
+         ())
+  in
+  let item = Vscode.TreeItem.make_label ~label () in
+  let command =
+    Vscode.Command.create
+      ~title:"Navigate typed holes"
+      ~command:"ocaml.navigate-typed-holes"
+      ()
+  in
+  Vscode.TreeItem.set_iconPath item icon;
+  Vscode.TreeItem.set_command item command;
+  item
+
+let items =
+  [ select_sandbox_item; terminal_item; construct_item; navigate_holes_item ]
 
 let getTreeItem ~element = `Value element
 
