@@ -3,6 +3,7 @@
 # Unreleased
 
 - Add `ocaml.jump` to jump to a specific target. (#1654)
+- Add `ocaml.navigate-typed-holes` to navigate to different typed holes. (#1666)
 
 ## 1.22.0
 
