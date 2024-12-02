@@ -2,6 +2,7 @@
 
 # Unreleased
 
+- Add `ocaml.navigate-typed-holes` to navigate to different typed holes. (#1666)
 - Add `ocaml.commands.construct.recursiveCalls` setting to configure construct chaining. (#1673)
 
 ## 1.23.0
