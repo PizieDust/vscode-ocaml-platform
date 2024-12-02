@@ -262,6 +262,11 @@
         "command": "ocaml.jump",
         "category": "OCaml",
         "title": "List possible parent targets for jumping"
+      },
+      {
+        "command": "ocaml.navigate-typed-holes",
+        "category": "OCaml",
+        "title": "Navigate to different typed holes"
       }
     ],
     "configuration": {
@@ -1062,6 +1067,10 @@
         {
           "command": "ocaml.construct",
           "when": "editorLangId == ocaml || editorLangId == ocaml.interface || editorLangId == reason || editorLangId == ocaml.ocamllex"
+        },
+        {
+          "command": "ocaml.navigate-typed-holes",
+          "when": "editorLangId == ocaml || editorLangId == ocaml.interface || editorLangId == reason"
         }
       ],
       "editor/title": [
