@@ -311,6 +311,11 @@
           "default": false,
           "markdownDescription": "Enable/Disable syntax documentation"
         },
+        "ocaml.server.typedHoles.constructAfterNavigate": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Enable/Disable listing possible values for a typed hole after navigating to it."
+        },
         "ocaml.dune.autoDetect": {
           "type": "boolean",
           "default": true,
