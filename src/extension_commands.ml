@@ -820,7 +820,7 @@ module Navigate_holes = struct
       ~revealType:TextEditorRevealType.InCenterIfOutsideViewport
       ()
 
-  let handle_hole_navigation text_editor client =
+  let handle_hole_navigation text_editor client instance =
     let open Promise.Syntax in
     let doc = TextEditor.document text_editor in
     let* hole_positions = send_request_to_lsp client doc in
@@ -831,7 +831,18 @@ module Navigate_holes = struct
     | holes -> (
       let* selected_hole = display_results holes doc in
       match selected_hole with
-      | Some (range, ()) -> jump_to_hole range text_editor
+      | Some (range, ()) -> (
+        let* _ = jump_to_hole range text_editor in
+        match
+          Settings.(get server_typedHolesConstructAfterNavigate_setting)
+        with
+        | Some true | None ->
+          Construct.process_construct
+            (Range.end_ range)
+            text_editor
+            client
+            instance
+        | Some false -> Promise.return ())
       | None -> Promise.return ())
 
   let _holes =
@@ -861,7 +872,7 @@ module Navigate_holes = struct
               "The installed version of `ocamllsp` does not support typed hole \
                navigation"
           | Some (client, _) ->
-            let _ = handle_hole_navigation text_editor client in
+            let _ = handle_hole_navigation text_editor client instance in
             ())
       in
       let (_ : unit) = hole_navigation () in
