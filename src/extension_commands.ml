@@ -847,7 +847,6 @@ module Navigate_holes = struct
 
   let _holes =
     let handler (instance : Extension_instance.t) ~args:_ =
-      let hole_navigation () =
         match Window.activeTextEditor () with
         | None ->
           Extension_consts.Command_errors.text_editor_must_be_active
