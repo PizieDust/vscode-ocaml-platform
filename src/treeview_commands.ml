@@ -74,7 +74,7 @@ let jump_item =
   item
 
 let navigate_holes_item =
-  let icon = `ThemeIcon (Vscode.ThemeIcon.make ~id:"arrow-up" ()) in
+  let icon = `ThemeIcon (Vscode.ThemeIcon.make ~id:"breakpoints-activate" ()) in
   let label =
     `TreeItemLabel
       (Vscode.TreeItemLabel.create
