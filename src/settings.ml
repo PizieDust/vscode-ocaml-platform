@@ -145,6 +145,6 @@ let server_syntaxDocumentation_setting =
 let server_typedHolesConstructAfterNavigate_setting =
   create_setting
     ~scope:ConfigurationTarget.Workspace
-    ~key:"ocaml.server.typedHoles.constructAfterNavigate"
+    ~key:"ocaml.commands.typedHoles.constructAfterNavigate"
     ~of_json:Jsonoo.Decode.bool
     ~to_json:Jsonoo.Encode.bool

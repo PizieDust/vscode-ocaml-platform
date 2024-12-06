@@ -836,13 +836,13 @@ module Navigate_holes = struct
         match
           Settings.(get server_typedHolesConstructAfterNavigate_setting)
         with
-        | Some true | None ->
+        | Some true ->
           Construct.process_construct
             (Range.end_ range)
             text_editor
             client
             instance
-        | Some false -> Promise.return ())
+        | Some false | None -> Promise.return ())
       | None -> Promise.return ())
 
   let _holes =
