@@ -781,25 +781,6 @@ module Navigate_holes = struct
     let uri = TextDocument.uri doc in
     Custom_requests.send_request client Custom_requests.typedHoles uri
 
-  let display_results (results : Range.t list) text_document =
-    let quickPickItems =
-      List.map results ~f:(fun res ->
-          let line = Position.line @@ Range.end_ res in
-          ( QuickPickItem.create
-              ~label:
-                (Printf.sprintf
-                   "Line %d: %s"
-                   line
-                   (TextLine.text @@ TextDocument.lineAt ~line text_document))
-              ()
-          , (res, ()) ))
-    in
-    let quickPickOptions = QuickPickOptions.create ~title:"Typed Holes" () in
-    Window.showQuickPickItems
-      ~choices:quickPickItems
-      ~options:quickPickOptions
-      ()
-
   let jump_to_hole range text_editor =
     let open Promise.Syntax in
     let+ _ =
@@ -820,6 +801,46 @@ module Navigate_holes = struct
       ~revealType:TextEditorRevealType.InCenterIfOutsideViewport
       ()
 
+  let display_results (results : Range.t list) text_editor =
+    let text_document = TextEditor.document text_editor in
+    let quickPickItems =
+      List.map results ~f:(fun range ->
+          let line = Position.line @@ Range.end_ range in
+          ( QuickPickItem.create
+              ~label:(Range.json_of_t range |> Jsonoo.stringify)
+              ~description:(Printf.sprintf "Line %d:" line)
+              ~detail:
+                (Printf.sprintf
+                   "%s:"
+                   (TextLine.text @@ TextDocument.lineAt ~line text_document))
+              ()
+          , (range, ()) ))
+    in
+    let quickPickOptions =
+      QuickPickOptions.create
+        ~title:"Typed Holes"
+        ~ignoreFocusOut:true
+        ~onDidSelectItem:(fun ~item ->
+          match item with
+          | `QuickPickItem hole -> (
+            match Jsonoo.try_parse_opt (QuickPickItem.label hole) with
+            | Some r ->
+              let range = Range.t_of_js @@ Jsonoo.t_to_js r in
+
+              let _ =
+                let _ = jump_to_hole range text_editor in
+                ()
+              in
+              ()
+            | None -> ())
+          | `String _ -> ())
+        ()
+    in
+    Window.showQuickPickItems
+      ~choices:quickPickItems
+      ~options:quickPickOptions
+      ()
+
   let handle_hole_navigation text_editor client instance =
     let open Promise.Syntax in
     let doc = TextEditor.document text_editor in
@@ -829,7 +850,7 @@ module Navigate_holes = struct
       show_message `Info "No typed holes found in the file.";
       Promise.return ()
     | holes -> (
-      let* selected_hole = display_results holes doc in
+      let* selected_hole = display_results holes text_editor in
       match selected_hole with
       | Some (range, ()) -> (
         let* () = jump_to_hole range text_editor in
