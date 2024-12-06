@@ -832,7 +832,7 @@ module Navigate_holes = struct
       let* selected_hole = display_results holes doc in
       match selected_hole with
       | Some (range, ()) -> (
-        let* _ = jump_to_hole range text_editor in
+        let* () = jump_to_hole range text_editor in
         match
           Settings.(get server_typedHolesConstructAfterNavigate_setting)
         with
