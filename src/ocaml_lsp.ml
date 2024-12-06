@@ -57,7 +57,8 @@ module Experimental_capabilities = struct
     ; handleJump = false
     }
 
-  (** Creates [t] given a JSON of form [{ 'handleSwitchImplIntf' : true, .... }] *)
+  (** Creates [t] given a JSON of form [{ 'handleSwitchImplIntf' : true, .... }]
+  *)
   let t_of_json (json : Jsonoo.t) =
     let experimental_caps_tbl = Jsonoo.Decode.(dict bool) json in
     let has_capability cap =
@@ -163,6 +164,8 @@ let lsp_versions =
          ; "1.16.2"
          ; "1.17.0"
          ; "1.18.0"
+         ; "1.20.0-4.14"
+         ; "1.20.1-4.14"
         |] )
     ; ( (5, 0)
       , [| "1.13.2~5.0preview"
@@ -174,7 +177,7 @@ let lsp_versions =
          ; "1.17.0"
         |] )
     ; ((5, 1), [| "1.16.1"; "1.16.2"; "1.17.0"; "1.18.0" |])
-    ; ((5, 2), [| "1.19.0" |])
+    ; ((5, 2), [| "1.19.0"; "1.20.0"; "1.20.1" |])
     ; ((5, 3), [| "1.20.0~5.3preview" |])
     ]
   in

@@ -832,7 +832,7 @@ module Navigate_holes = struct
       let* selected_hole = display_results holes doc in
       match selected_hole with
       | Some (range, ()) -> (
-        let* _ = jump_to_hole range text_editor in
+        let* () = jump_to_hole range text_editor in
         match
           Settings.(get server_typedHolesConstructAfterNavigate_setting)
         with
@@ -847,7 +847,6 @@ module Navigate_holes = struct
 
   let _holes =
     let handler (instance : Extension_instance.t) ~args:_ =
-      let hole_navigation () =
         match Window.activeTextEditor () with
         | None ->
           Extension_consts.Command_errors.text_editor_must_be_active
@@ -874,9 +873,6 @@ module Navigate_holes = struct
           | Some (client, _) ->
             let _ = handle_hole_navigation text_editor client instance in
             ())
-      in
-      let (_ : unit) = hole_navigation () in
-      ()
     in
     command Extension_consts.Commands.navigate_typed_holes handler
 end
