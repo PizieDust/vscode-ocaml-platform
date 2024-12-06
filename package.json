@@ -311,7 +311,7 @@
           "default": false,
           "markdownDescription": "Enable/Disable syntax documentation"
         },
-        "ocaml.server.typedHoles.constructAfterNavigate": {
+        "ocaml.commands.typedHoles.constructAfterNavigate": {
           "type": "boolean",
           "default": true,
           "markdownDescription": "Enable/Disable listing possible values for a typed hole after navigating to it."
