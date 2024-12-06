@@ -266,7 +266,7 @@
       {
         "command": "ocaml.navigate-typed-holes",
         "category": "OCaml",
-        "title": "Navigate to different typed holes"
+        "title": "Lists typed holes in the file for navigation."
       }
     ],
     "configuration": {
