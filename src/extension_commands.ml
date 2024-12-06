@@ -826,12 +826,9 @@ module Navigate_holes = struct
             match Jsonoo.try_parse_opt (QuickPickItem.label hole) with
             | Some r ->
               let range = Range.t_of_js @@ Jsonoo.t_to_js r in
-
               let _ =
-                let _ = jump_to_hole range text_editor in
+                jump_to_hole range text_editor in
                 ()
-              in
-              ()
             | None -> ())
           | `String _ -> ())
         ()
