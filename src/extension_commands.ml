@@ -847,32 +847,32 @@ module Navigate_holes = struct
 
   let _holes =
     let handler (instance : Extension_instance.t) ~args:_ =
-        match Window.activeTextEditor () with
-        | None ->
-          Extension_consts.Command_errors.text_editor_must_be_active
-            extension_name
-            ~expl:
-              "The cursor position is used to determine the correct \
-               environment and perform the jump."
-          |> show_message `Error "%s"
-        | Some text_editor
-          when not (is_valid_text_doc (TextEditor.document text_editor)) ->
+      match Window.activeTextEditor () with
+      | None ->
+        Extension_consts.Command_errors.text_editor_must_be_active
+          extension_name
+          ~expl:
+            "This command only works in an active editor because it's based on \
+             the content of the editor"
+        |> show_message `Error "%s"
+      | Some text_editor
+        when not (is_valid_text_doc (TextEditor.document text_editor)) ->
+        show_message
+          `Error
+          "Invalid file type. This command only works in ocaml files, ocaml \
+           interface files, reason files."
+      | Some text_editor -> (
+        match Extension_instance.lsp_client instance with
+        | None -> show_message `Warn "ocamllsp is not running"
+        | Some (_client, ocaml_lsp)
+          when ocaml_lsp_doesnt_support_typed_holes ocaml_lsp ->
           show_message
-            `Error
-            "Invalid file type. This command only works in ocaml files, ocaml \
-             interface files, reason files."
-        | Some text_editor -> (
-          match Extension_instance.lsp_client instance with
-          | None -> show_message `Warn "ocamllsp is not running"
-          | Some (_client, ocaml_lsp)
-            when ocaml_lsp_doesnt_support_typed_holes ocaml_lsp ->
-            show_message
-              `Warn
-              "The installed version of `ocamllsp` does not support typed hole \
-               navigation"
-          | Some (client, _) ->
-            let _ = handle_hole_navigation text_editor client instance in
-            ())
+            `Warn
+            "The installed version of `ocamllsp` does not support typed hole \
+             navigation"
+        | Some (client, _) ->
+          let _ = handle_hole_navigation text_editor client instance in
+          ())
     in
     command Extension_consts.Commands.navigate_typed_holes handler
 end
