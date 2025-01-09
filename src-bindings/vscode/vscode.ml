@@ -530,6 +530,41 @@ module ThemableDecorationAttachmentRenderOptions = struct
       [@@js.builder]]
 end
 
+module DecorationRenderOptions = struct
+  include Interface.Make ()
+
+  type color = ThemableDecorationAttachmentRenderOptions.color [@@js]
+
+  include
+    [%js:
+      val create
+        :  ?backgroundColor:color
+        -> ?outline:string
+        -> ?outlineColor:color
+        -> ?outlineStyle:string
+        -> ?outlineWidth:string
+        -> ?border:string
+        -> ?borderColor:color
+        -> ?borderRadius:string
+        -> ?borderSpacing:string
+        -> ?borderStyle:string
+        -> ?borderWidth:string
+        -> ?fontStyle:string
+        -> ?fontWeight:string
+        -> ?textDecoration:string
+        -> ?cursor:string
+        -> ?color:color
+        -> ?opacity:string
+        -> ?letterSpacing:string
+        -> ?overviewRulerColor:color
+        -> ?before:ThemableDecorationAttachmentRenderOptions.t
+        -> ?after:ThemableDecorationAttachmentRenderOptions.t
+        -> ?isWholeLine:bool
+        -> unit
+        -> t
+      [@@js.builder]]
+end
+
 module ThemableDecorationInstanceRenderOptions = struct
   include Interface.Make ()
 
@@ -2930,6 +2965,11 @@ module Window = struct
         -> unit
         -> TextEditor.t Promise.t
       [@@js.global "vscode.window.showTextDocument"]
+
+      val createTextEditorDecorationType
+        :  options:DecorationRenderOptions.t
+        -> TextEditorDecorationType.t
+      [@@js.global "vscode.window.createTextEditorDecorationType"]
 
       val showInformationMessage
         :  message:string
