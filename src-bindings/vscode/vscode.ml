@@ -728,6 +728,31 @@ module TextEditor = struct
   ;;
 end
 
+module TextEditorSelectionChangeKind = struct
+  type t =
+    | Keyboard [@js 1]
+    | Mouse [@js 2]
+    | Command [@js 3]
+  [@@js.enum] [@@js]
+end
+
+module TextEditorSelectionChangeEvent = struct
+  include Interface.Make ()
+
+  include
+    [%js:
+      val kind : t -> TextEditorSelectionChangeKind.t [@@js.get]
+      val selections : t -> Selection.t list [@@js.get]
+      val textEditor : t -> TextEditor.t [@@js.get]
+
+      val create
+        :  kind:TextEditorSelectionChangeKind.t
+        -> selections:Selection.t list
+        -> textEditor:TextEditor.t
+        -> t
+      [@@js.builder]]
+end
+
 module ConfigurationTarget = struct
   type t =
     | Global [@js 1]
@@ -2936,6 +2961,11 @@ module Window = struct
 
       val onDidChangeVisibleTextEditors : unit -> TextEditor.t list Event.t
       [@@js.get "vscode.window.onDidChangeVisibleTextEditors"]
+
+      val onDidChangeTextEditorSelection
+        :  unit
+        -> TextEditorSelectionChangeEvent.t Event.t
+      [@@js.get "vscode.window.onDidChangeTextEditorSelection"]
 
       val terminals : unit -> Terminal.t list [@@js.get "vscode.window.terminals"]
 
