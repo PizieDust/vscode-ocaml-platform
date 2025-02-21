@@ -381,27 +381,57 @@ let update_ocaml_info t =
          v
          msg
      | `Ocamlc_missing ->
-       let (_ : unit Promise.t) =
-         let+ maybe_choice =
-           Window.showWarningMessage
-             ~message:
-               "OCaml bytecode compiler `ocamlc` was not found in the current sandbox. \
-                Do you have OCaml installed in the current sandbox?"
-             ~choices:
-               [ ( "Pick another sandbox"
-                 , fun () ->
-                     let (_ : Ojs.t option Promise.t) =
-                       Vscode.Commands.executeCommand
-                         ~command:Extension_consts.Commands.select_sandbox
-                         ~args:[]
-                     in
-                     () )
-               ]
-             ()
+       if String.equal (Sandbox.to_string t.sandbox) "Dune Package Manager"
+       then (
+         let (_ : unit Promise.t) =
+           let+ maybe_choice =
+             Window.showWarningMessage
+               ~message:
+                 "OCaml bytecode compiler `ocamlc` was not found in the current sandbox. \
+                  Do you want to run `dune pkg lock`"
+               ~choices:
+                 [ ( "Run dune pkg lock"
+                   , fun () ->
+                       let _ =
+                         Sandbox.get_command t.sandbox "dune" ["pkg"; "lock"] |> Cmd.output
+                       in
+                       () )
+                 ; ( "Pick another sandbox"
+                   , fun () ->
+                       let (_ : Ojs.t option Promise.t) =
+                         Vscode.Commands.executeCommand
+                           ~command:Extension_consts.Commands.select_sandbox
+                           ~args:[]
+                       in
+                       () )
+                 ]
+               ()
+           in
+           Option.iter maybe_choice ~f:(fun f -> f ())
          in
-         Option.iter maybe_choice ~f:(fun f -> f ())
-       in
-       ())
+         ())
+       else (
+         let (_ : unit Promise.t) =
+           let+ maybe_choice =
+             Window.showWarningMessage
+               ~message:
+                 "OCaml bytecode compiler `ocamlc` was not found in the current sandbox. \
+                  Do you have OCaml installed in the current sandbox?"
+               ~choices:
+                 [ ( "Pick another sandbox"
+                   , fun () ->
+                       let (_ : Ojs.t option Promise.t) =
+                         Vscode.Commands.executeCommand
+                           ~command:Extension_consts.Commands.select_sandbox
+                           ~args:[]
+                       in
+                       () )
+                 ]
+               ()
+           in
+           Option.iter maybe_choice ~f:(fun f -> f ())
+         in
+         ()))
 ;;
 
 let open_terminal sandbox =
