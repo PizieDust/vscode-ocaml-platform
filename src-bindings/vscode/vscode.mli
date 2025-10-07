@@ -2136,6 +2136,33 @@ module RegisterCustomEditorProviderOptions : sig
   val create : ?supportsMultipleEditorsPerDocument:bool -> unit -> t
 end
 
+module TelemetryLogger : sig
+  include Ojs.T
+
+  val isErrorEnabled : t -> bool
+  val isUsageEnabled : t -> bool
+  val onDidChangeEnableStates : t -> t Event.t option
+  val dispose : t -> unit
+  val logError : t -> eventName:string -> data:Ojs.t -> unit
+  val logUsage : t -> eventName:string -> data:Ojs.t -> unit
+end
+
+module TelemetryLoggerOptions : sig
+  include Ojs.T
+
+  val additionalCommonProperties : t -> Ojs.t option
+  val ignoreBuiltInCommonProperties : t -> bool option
+  val ignoreUnhandledErrors : t -> bool option
+end
+
+module TelemetrySender : sig
+  include Ojs.T
+
+  val flush : t -> unit Promise.t
+  val sendErrorData : t -> error:Ojs.t -> data:Ojs.t -> unit
+  val sendEventData : t -> eventName:string -> data:Ojs.t -> unit
+end
+
 module Window : sig
   val activeTextEditor : unit -> TextEditor.t option
   val visibleTextEditors : unit -> TextEditor.t list
@@ -2320,6 +2347,12 @@ end
 module Env : sig
   val shell : unit -> string
   val clipboard : unit -> Clipboard.t
+
+  val createTelemetryLogger
+    :  sender:TelemetrySender.t
+    -> ?options:TelemetryLoggerOptions.t option
+    -> unit
+    -> TelemetryLogger.t
 end
 
 module DebugAdapterExecutableOptions : sig

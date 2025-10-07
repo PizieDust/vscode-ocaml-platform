@@ -2950,6 +2950,39 @@ module RegisterCustomEditorProviderOptions = struct
       val create : ?supportsMultipleEditorsPerDocument:bool -> unit -> t [@@js.builder]]
 end
 
+module TelemetryLogger = struct
+  include Interface.Make ()
+
+  include
+    [%js:
+      val isErrorEnabled : t -> bool [@@js.get]
+      val isUsageEnabled : t -> bool [@@js.get]
+      val onDidChangeEnableStates : t -> t Event.t or_undefined [@@js.get]
+      val dispose : t -> unit [@@js.call]
+      val logError : t -> eventName:string -> data:Ojs.t -> unit [@@js.call]
+      val logUsage : t -> eventName:string -> data:Ojs.t -> unit [@@js.call]]
+end
+
+module TelemetryLoggerOptions = struct
+  include Interface.Make ()
+
+  include
+    [%js:
+      val additionalCommonProperties : t -> Ojs.t or_undefined [@@js.get]
+      val ignoreBuiltInCommonProperties : t -> bool or_undefined [@@js.get]
+      val ignoreUnhandledErrors : t -> bool or_undefined [@@js.get]]
+end
+
+module TelemetrySender = struct
+  include Interface.Make ()
+
+  include
+    [%js:
+      val flush : t -> unit Promise.t [@@js.call]
+      val sendErrorData : t -> error:Ojs.t -> data:Ojs.t -> unit [@@js.call]
+      val sendEventData : t -> eventName:string -> data:Ojs.t -> unit [@@js.call]]
+end
+
 module Window = struct
   include
     [%js:
@@ -3261,7 +3294,14 @@ module Env = struct
   include
     [%js:
       val shell : unit -> string [@@js.get "vscode.env.shell"]
-      val clipboard : unit -> Clipboard.t [@@js.get "vscode.env.clipboard"]]
+      val clipboard : unit -> Clipboard.t [@@js.get "vscode.env.clipboard"]
+
+      val createTelemetryLogger
+        :  sender:TelemetrySender.t
+        -> ?options:TelemetryLoggerOptions.t or_undefined
+        -> unit
+        -> TelemetryLogger.t
+      [@@js.global "vscode.env.createTelemetryLogger"]]
 end
 
 module DebugAdapterExecutableOptions = struct
