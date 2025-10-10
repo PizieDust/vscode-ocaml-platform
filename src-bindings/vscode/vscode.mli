@@ -1683,6 +1683,16 @@ module TextDocumentContentProvider : sig
     -> t
 end
 
+module FileSystem : sig
+  include Ojs.T
+
+  val isWritableFileSystem : t -> scheme:string -> bool
+
+  (* We use bytes here instead of uint8Array for these methods. *)
+  val readFile : t -> uri:string -> string Promise.t
+  val writeFile : t -> uri:string -> string -> unit Promise.t
+end
+
 module FileSystemWatcher : sig
   include Ojs.T
 
@@ -1705,6 +1715,7 @@ module Workspace : sig
     -> unit
     -> FileSystemWatcher.t
 
+  val fs : unit -> FileSystem.t
   val workspaceFile : unit -> Uri.t option
   val rootPath : unit -> string or_undefined
   val onDidChangeWorkspaceFolders : WorkspaceFolder.t Event.t
@@ -2157,6 +2168,11 @@ end
 
 module TelemetrySender : sig
   include Ojs.T
+
+  val create
+    :  sendErrorData:(error:Ojs.t -> data:Ojs.t option -> unit)
+    -> sendEventData:(eventName:string -> data:Ojs.t option -> unit)
+    -> t
 
   val flush : t -> unit Promise.t
   val sendErrorData : t -> error:Ojs.t -> data:Ojs.t -> unit

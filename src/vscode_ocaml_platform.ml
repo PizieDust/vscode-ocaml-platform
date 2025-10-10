@@ -42,6 +42,8 @@ let activate (extension : ExtensionContext.t) =
     ~disposable:(Extension_instance.disposable instance);
   ExtensionContext.subscribe extension ~disposable:(notify_configuration_changes instance);
   Dune_formatter.register extension instance;
+  let logger = Ocaml_lsp_metrics_logger.create_logger () in
+  Ocaml_lsp_metrics_logger.register logger extension instance;
   Dune_task_provider.register extension instance;
   Treeview_switches.register extension instance;
   Treeview_sandbox.register extension instance;

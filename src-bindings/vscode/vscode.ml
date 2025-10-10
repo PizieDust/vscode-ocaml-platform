@@ -2314,6 +2314,13 @@ module TextDocumentContentProvider = struct
       [@@js.builder]]
 end
 
+module FileSystem = struct
+  include Class.Make ()
+  include [%js: val isWritableFileSystem : t -> scheme:string -> bool [@@js.call]]
+  include [%js: val readFile : t -> uri:string -> string Promise.t [@@js.call]]
+  include [%js: val writeFile : t -> uri:string -> string -> unit Promise.t [@@js.call]]
+end
+
 module FileSystemWatcher = struct
   include Interface.Make ()
   include [%js: val onDidChange : t -> Uri.t Event.t [@@js.get]]
@@ -2338,6 +2345,8 @@ module Workspace = struct
 
   include
     [%js:
+      val fs : unit -> FileSystem.t [@@js.get]
+
       val workspaceFolders : unit -> WorkspaceFolder.t maybe_list
       [@@js.get "vscode.workspace.workspaceFolders"]
 
@@ -2978,6 +2987,12 @@ module TelemetrySender = struct
 
   include
     [%js:
+      val create
+        :  sendErrorData:(error:Ojs.t -> data:Ojs.t option -> unit)
+        -> sendEventData:(eventName:string -> data:Ojs.t option -> unit)
+        -> t
+      [@@js.builder]
+
       val flush : t -> unit Promise.t [@@js.call]
       val sendErrorData : t -> error:Ojs.t -> data:Ojs.t -> unit [@@js.call]
       val sendEventData : t -> eventName:string -> data:Ojs.t -> unit [@@js.call]]
