@@ -46,7 +46,7 @@ let log logger ~name msg =
   TelemetryLogger.logUsage logger ~eventName:name ~data:(Msg.from_string msg)
 ;;
 
-let register logger extension _instance =
+let register logger extension =
   let disposable = Disposable.make ~dispose:(fun () -> TelemetryLogger.dispose logger) in
   ExtensionContext.subscribe extension ~disposable
 ;;
