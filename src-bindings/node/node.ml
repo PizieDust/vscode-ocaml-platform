@@ -170,7 +170,10 @@ module Fs = struct
       val readdir : string -> string list Promise.t [@@js.global "fs.readdir"]
 
       val readFile : string -> options:ReadFileOptions.t -> string Promise.t
-      [@@js.global "fs.readFile"]]
+      [@@js.global "fs.readFile"]
+
+      val appendFile : path:string -> content:string -> unit Promise.t
+      [@@js.global "fs.appendFile"]]
 
   let exists path =
     access path ~mode:Constants.R_OK

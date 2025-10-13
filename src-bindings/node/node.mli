@@ -108,6 +108,7 @@ end
 module Fs : sig
   val readDir : string -> (string list, string) result Promise.t
   val readFile : string -> string Promise.t
+  val appendFile : path:string -> content:string -> unit Promise.t
   val exists : string -> bool Promise.t
 end
 
