@@ -1,7 +1,7 @@
 open Import
 
 module Msg = struct
-  (* We use an intermediate object to wrap a log message, VScode prohibes logging just a string.
+  (* We use an intermediate object to wrap a log message, VScode prohibits logging just a string.
      See https://code.visualstudio.com/api/references/vscode-api#TelemetrySender. *)
   let from_string msg = Ojs.obj [| "msg", Ojs.string_to_js msg |]
   let to_string obj = Ojs.get_prop obj (Ojs.string_to_js "msg") |> Ojs.string_of_js
@@ -13,16 +13,8 @@ let log_line ~prefix event_name msg_data =
 ;;
 
 let on_log ~fs ~uri event_name data =
-  (* TODO: handle properly FS errors? *)
-  (* if FileSystem.isWritableFileSystem fs ~scheme:"file"
-     then *)
-  (* Make sure the file exists by writing an empty string in it. *)
-  (* let _ = FileSystem.writeFile fs ~uri:log_file_path "" in *)
   let open Promise.Syntax in
-  let* content = FileSystem.readFile fs ~uri in
-  log "reading: %s" content;
-  let+ () = FileSystem.writeFile fs ~uri (log_line ~prefix:content event_name data) in
-  log "writing";
+  let+ () = Fs.appendFile ~path:uri ~content:(log_line ~prefix:"" event_name data) in
   ()
 ;;
 
