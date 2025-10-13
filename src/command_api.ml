@@ -10,6 +10,8 @@ type ('a, 'b) handle =
 let execute (type a b) (handle : (a, b) handle) args =
   let (module Return) = handle.return_type in
   let open Promise.Syntax in
+  let logger = Ocaml_lsp_metrics_logger.create_logger () in
+  Ocaml_lsp_metrics_logger.log logger ~name:"OCaml VSCode Extension" handle.id;
   let+ result =
     Vscode.Commands.executeCommand ~command:handle.id ~args:(handle.args_to_js args)
   in
